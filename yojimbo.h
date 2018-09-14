@@ -141,7 +141,6 @@
 #include <string.h>
 #include <memory.h>
 #include <math.h>
-#include <inttypes.h>
 #if YOJIMBO_DEBUG_MESSAGE_LEAKS
 #include <map>
 #endif // #if YOJIMBO_DEBUG_MESSAGE_LEAKS
@@ -4135,7 +4134,7 @@ namespace yojimbo
             @param message The message to be sent.
          */
 
-        virtual void SendMessage( Message * message, void *context) = 0;
+        virtual void SendMessage( Message * message ) = 0;
 
         /** 
             Pops the next message off the receive queue if one is available.
@@ -4161,7 +4160,7 @@ namespace yojimbo
             @see Connection::GeneratePacket
          */
 
-        virtual int GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits) = 0;
+        virtual int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits ) = 0;
 
         /**
             Process packet data included in a connection packet.
@@ -4267,13 +4266,13 @@ namespace yojimbo
 
         bool CanSendMessage() const;
 
-        void SendMessage( Message * message, void *context );
+        void SendMessage( Message * message );
 
         Message * ReceiveMessage();
 
         void AdvanceTime( double time );
 
-        int GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
+        int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
 
         void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence );
 
@@ -4298,7 +4297,7 @@ namespace yojimbo
             @see GetMessagePacketData
          */
 
-        int GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int remainingPacketBits, void *context );
+        int GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int remainingPacketBits );
 
         /**
             Fill channel packet data with messages.
@@ -4613,13 +4612,13 @@ namespace yojimbo
 
         bool CanSendMessage() const;
 
-        void SendMessage( Message * message, void *context );
+        void SendMessage( Message * message );
 
         Message * ReceiveMessage();
 
         void AdvanceTime( double time );
 
-        int GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
+        int GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits );
 
         void ProcessPacketData( const ChannelPacketData & packetData, uint16_t packetSequence );
 
@@ -4664,7 +4663,7 @@ namespace yojimbo
 
         bool CanSendMessage( int channelIndex ) const;
 
-        void SendMessage( int channelIndex, Message * message, void *context = 0);
+        void SendMessage( int channelIndex, Message * message );
 
         Message * ReceiveMessage( int channelIndex );
 
@@ -4884,7 +4883,7 @@ namespace yojimbo
 
          */
 
-        virtual MessageFactory * CreateMessageFactory( Allocator & allocator )
+        virtual MessageFactory * CreateMessageFactory( Allocator * allocator )
         {
             (void) allocator;
             yojimbo_assert( false );
@@ -5061,14 +5060,6 @@ namespace yojimbo
          */
 
         virtual bool IsClientConnected( int clientIndex ) const = 0;
-
-        /**
-            Get the unique id of the client
-            @param clientIndex the index of the client slot in [0,maxClients-1], where maxClients corresponds to the value passed into the last call to Server::Start.
-            @returns The unique id of the client.
-         */
-
-        virtual uint64_t GetClientId( int clientIndex ) const = 0;
 
         /** 
             Get the number of clients that are currently connected to the server.
@@ -5332,8 +5323,6 @@ namespace yojimbo
         void AdvanceTime( double time );
 
         bool IsClientConnected( int clientIndex ) const;
-
-        uint64_t GetClientId( int clientIndex ) const;
 
         int GetNumConnectedClients() const;
 

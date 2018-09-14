@@ -152,9 +152,9 @@ class TestAdapter : public Adapter
 {
 public:
 
-    MessageFactory * CreateMessageFactory( Allocator & allocator )
+    MessageFactory * CreateMessageFactory( Allocator * allocator )
     {
-        return YOJIMBO_NEW( allocator, TestMessageFactory, allocator );
+        return YOJIMBO_NEW( *allocator, TestMessageFactory, *allocator );
     }
 };
 

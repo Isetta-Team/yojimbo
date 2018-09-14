@@ -1711,7 +1711,7 @@ namespace yojimbo
         return m_messageSendQueue->Available( m_sendMessageId );
     }
 
-    void ReliableOrderedChannel::SendMessage( Message * message, void *context )
+    void ReliableOrderedChannel::SendMessage( Message * message )
     {
         yojimbo_assert( message );
         
@@ -1759,7 +1759,6 @@ namespace yojimbo
         }
 
         MeasureStream measureStream( m_messageFactory->GetAllocator() );
-		measureStream.SetContext( context );
         message->SerializeInternal( measureStream );
         entry->measuredBits = measureStream.GetBitsProcessed();
         m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
@@ -1790,16 +1789,13 @@ namespace yojimbo
         m_time = time;
     }
     
-    int ReliableOrderedChannel::GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
+    int ReliableOrderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
     {
         if ( !HasMessagesToSend() )
             return 0;
 
         if ( SendingBlockMessage() )
         {
-            if (m_config.blockFragmentSize * 8 > availableBits)
-                return 0;
-
             uint16_t messageId;
             uint16_t fragmentId;
             int fragmentBytes;
@@ -1819,7 +1815,7 @@ namespace yojimbo
         {
             int numMessageIds = 0;
             uint16_t * messageIds = (uint16_t*) alloca( m_config.maxMessagesPerPacket * sizeof( uint16_t ) );
-            const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits, context );
+            const int messageBits = GetMessagesToSend( messageIds, numMessageIds, availableBits );
 
             if ( numMessageIds > 0 )
             {
@@ -1837,7 +1833,7 @@ namespace yojimbo
         return m_oldestUnackedMessageId != m_sendMessageId;
     }
 
-    int ReliableOrderedChannel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits, void *context )
+    int ReliableOrderedChannel::GetMessagesToSend( uint16_t * messageIds, int & numMessageIds, int availableBits )
     {
         yojimbo_assert( HasMessagesToSend() );
 
@@ -1880,7 +1876,6 @@ namespace yojimbo
                 else
                 {
                     MeasureStream stream( GetDefaultAllocator() );
-                    stream.SetContext( context );
                     serialize_sequence_relative_internal( stream, previousMessageId, messageId );
                     messageBits += stream.GetBitsProcessed();
                 }
@@ -2395,11 +2390,10 @@ namespace yojimbo
         return !m_messageSendQueue->IsFull();
     }
 
-    void UnreliableUnorderedChannel::SendMessage( Message * message, void *context )
+    void UnreliableUnorderedChannel::SendMessage( Message * message )
     {
         yojimbo_assert( message );
         yojimbo_assert( CanSendMessage() );
-		(void)context;
 
         if ( GetErrorLevel() != CHANNEL_ERROR_NONE )
         {
@@ -2452,7 +2446,7 @@ namespace yojimbo
         (void) time;
     }
     
-    int UnreliableUnorderedChannel::GetPacketData( void *context, ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
+    int UnreliableUnorderedChannel::GetPacketData( ChannelPacketData & packetData, uint16_t packetSequence, int availableBits )
     {
         (void) packetSequence;
 
@@ -2486,7 +2480,7 @@ namespace yojimbo
             yojimbo_assert( message );
 
             MeasureStream measureStream( m_messageFactory->GetAllocator() );
-			measureStream.SetContext( context );
+    
             message->SerializeInternal( measureStream );
             
             if ( message->IsBlockMessage() )
@@ -2732,11 +2726,11 @@ namespace yojimbo
         return m_channel[channelIndex]->CanSendMessage();
     }
 
-    void Connection::SendMessage( int channelIndex, Message * message, void *context)
+    void Connection::SendMessage( int channelIndex, Message * message )
     {
         yojimbo_assert( channelIndex >= 0 );
         yojimbo_assert( channelIndex < m_connectionConfig.numChannels );
-        return m_channel[channelIndex]->SendMessage( message, context );
+        return m_channel[channelIndex]->SendMessage( message );
     }
 
     Message * Connection::ReceiveMessage( int channelIndex )
@@ -2760,9 +2754,9 @@ namespace yojimbo
                             int bufferSize )
     {
         WriteStream stream( messageFactory.GetAllocator(), buffer, bufferSize );
-        
+
         stream.SetContext( context );
-        
+
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (write packet)\n" );
@@ -2797,7 +2791,7 @@ namespace yojimbo
             
             for ( int channelIndex = 0; channelIndex < m_connectionConfig.numChannels; ++channelIndex )
             {
-                int packetDataBits = m_channel[channelIndex]->GetPacketData( context, channelData[channelIndex], packetSequence, availableBits );
+                int packetDataBits = m_channel[channelIndex]->GetPacketData( channelData[channelIndex], packetSequence, availableBits );
                 if ( packetDataBits > 0 )
                 {
                     availableBits -= ConservativeChannelHeaderBits;
@@ -2844,9 +2838,9 @@ namespace yojimbo
         yojimbo_assert( bufferSize > 0 );
 
         ReadStream stream( messageFactory.GetAllocator(), buffer, bufferSize );
-        
+
         stream.SetContext( context );
-        
+
         if ( !packet.SerializeInternal( stream, messageFactory, connectionConfig ) )
         {
             yojimbo_printf( YOJIMBO_LOG_LEVEL_ERROR, "error: serialize connection packet failed (read packet)\n" );
@@ -3038,7 +3032,7 @@ namespace yojimbo
         yojimbo_assert( m_messageFactory == NULL );
         m_clientMemory = (uint8_t*) YOJIMBO_ALLOCATE( *m_allocator, m_config.clientMemory );
         m_clientAllocator = m_adapter->CreateAllocator( *m_allocator, m_clientMemory, m_config.clientMemory );
-        m_messageFactory = m_adapter->CreateMessageFactory( *m_clientAllocator );
+        m_messageFactory = m_adapter->CreateMessageFactory( m_clientAllocator );
         m_connection = YOJIMBO_NEW( *m_clientAllocator, Connection, *m_clientAllocator, *m_messageFactory, m_config, m_time );
         yojimbo_assert( m_connection );
         if ( m_config.networkSimulator )
@@ -3144,7 +3138,7 @@ namespace yojimbo
     void BaseClient::SendMessage( int channelIndex, Message * message )
     {
         yojimbo_assert( m_connection );
-        m_connection->SendMessage( channelIndex, message, GetContext() );
+        m_connection->SendMessage( channelIndex, message );
     }
 
     Message * BaseClient::ReceiveMessage( int channelIndex )
@@ -3235,7 +3229,6 @@ namespace yojimbo
             serverAddressStringPointers[i] = serverAddressStrings[i];
         }
         return netcode_generate_connect_token( numServerAddresses, 
-                                               serverAddressStringPointers, 
                                                serverAddressStringPointers, 
                                                m_config.timeout,
                                                m_config.timeout, 
@@ -3382,19 +3375,11 @@ namespace yojimbo
         DestroyClient();
         char addressString[MaxAddressLength];
         address.ToString( addressString, MaxAddressLength );
-
-        struct netcode_client_config_t netcodeConfig;
-        netcode_default_client_config(&netcodeConfig);
-        netcodeConfig.allocator_context             = &GetClientAllocator();
-        netcodeConfig.allocate_function             = StaticAllocateFunction;
-        netcodeConfig.free_function                 = StaticFreeFunction;
-        netcodeConfig.callback_context              = this;
-        netcodeConfig.state_change_callback         = StaticStateChangeCallbackFunction;
-        netcodeConfig.send_loopback_packet_callback = StaticSendLoopbackPacketCallbackFunction;
-        m_client = netcode_client_create(addressString, &netcodeConfig, GetTime());
-        
+        m_client = netcode_client_create_with_allocator( addressString, GetTime(), &GetClientAllocator(), StaticAllocateFunction, StaticFreeFunction );
         if ( m_client )
         {
+            netcode_client_state_change_callback( m_client, this, StaticStateChangeCallbackFunction );
+            netcode_client_send_loopback_packet_callback( m_client, this, StaticSendLoopbackPacketCallbackFunction );
             m_boundAddress.SetPort( netcode_client_get_port( m_client ) );
         }
     }
@@ -3514,7 +3499,7 @@ namespace yojimbo
             m_clientAllocator[i] = m_adapter->CreateAllocator( *m_allocator, m_clientMemory[i], m_config.serverPerClientMemory );
             yojimbo_assert( m_clientAllocator[i] );
             
-            m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( *m_clientAllocator[i] );
+            m_clientMessageFactory[i] = m_adapter->CreateMessageFactory( m_clientAllocator[i] );
             yojimbo_assert( m_clientMessageFactory[i] );
             
             m_clientConnection[i] = YOJIMBO_NEW( *m_clientAllocator[i], Connection, *m_clientAllocator[i], *m_clientMessageFactory[i], m_config, m_time );
@@ -3679,7 +3664,7 @@ namespace yojimbo
         yojimbo_assert( clientIndex >= 0 );
         yojimbo_assert( clientIndex < m_maxClients );
         yojimbo_assert( m_clientConnection[clientIndex] );
-        return m_clientConnection[clientIndex]->SendMessage( channelIndex, message, GetContext() );
+        return m_clientConnection[clientIndex]->SendMessage( channelIndex, message );
     }
 
     Message * BaseServer::ReceiveMessage( int clientIndex, int channelIndex )
@@ -3797,25 +3782,22 @@ namespace yojimbo
         
         char addressString[MaxAddressLength];
         m_address.ToString( addressString, MaxAddressLength );
-        
-        struct netcode_server_config_t netcodeConfig;
-        netcode_default_server_config(&netcodeConfig);
-        netcodeConfig.protocol_id = m_config.protocolId;
-        memcpy(netcodeConfig.private_key, m_privateKey, NETCODE_KEY_BYTES);
-        netcodeConfig.allocator_context = &GetGlobalAllocator();
-        netcodeConfig.allocate_function = StaticAllocateFunction;
-        netcodeConfig.free_function     = StaticFreeFunction;
-        netcodeConfig.callback_context = this;
-        netcodeConfig.connect_disconnect_callback = StaticConnectDisconnectCallbackFunction;
-        netcodeConfig.send_loopback_packet_callback = StaticSendLoopbackPacketCallbackFunction;
-        
-        m_server = netcode_server_create(addressString, &netcodeConfig, GetTime());
-        
+        m_server = netcode_server_create_with_allocator( addressString, 
+                                                         m_config.protocolId, 
+                                                         m_privateKey, 
+                                                         GetTime(), 
+                                                         &GetGlobalAllocator(), 
+                                                         StaticAllocateFunction, 
+                                                         StaticFreeFunction );
         if ( !m_server )
         {
             Stop();
             return;
         }
+
+        netcode_server_connect_disconnect_callback( m_server, this, StaticConnectDisconnectCallbackFunction );
+
+        netcode_server_send_loopback_packet_callback( m_server, this, StaticSendLoopbackPacketCallbackFunction );
         
         netcode_server_start( m_server, maxClients );
 
@@ -3913,11 +3895,6 @@ namespace yojimbo
     bool Server::IsClientConnected( int clientIndex ) const
     {
         return netcode_server_client_connected( m_server, clientIndex ) != 0;
-    }
-
-    uint64_t Server::GetClientId( int clientIndex ) const
-    {
-        return netcode_server_client_id( m_server, clientIndex );
     }
 
     int Server::GetNumConnectedClients() const
