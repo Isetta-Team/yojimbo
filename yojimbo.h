@@ -4884,7 +4884,7 @@ namespace yojimbo
 
          */
 
-        virtual MessageFactory * CreateMessageFactory( Allocator & allocator )
+        virtual MessageFactory * CreateMessageFactory( Allocator * allocator )
         {
             (void) allocator;
             yojimbo_assert( false );
