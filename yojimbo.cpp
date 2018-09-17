@@ -3907,7 +3907,12 @@ namespace yojimbo
     bool Server::IsClientConnected( int clientIndex ) const
     {
         return netcode_server_client_connected( m_server, clientIndex ) != 0;
-    }
+	  }
+	
+	  uint64_t Server::GetClientId( int clientIndex ) const
+	  {
+	      return netcode_server_client_id( m_server, clientIndex );
+	  }
 
     int Server::GetNumConnectedClients() const
     {
