@@ -3802,6 +3802,9 @@ namespace yojimbo
         netcodeConfig.send_loopback_packet_callback =
             StaticSendLoopbackPacketCallbackFunction;
 
+        m_server =
+            netcode_server_create(addressString, &netcodeConfig, GetTime());
+
         if ( !m_server )
         {
             Stop();

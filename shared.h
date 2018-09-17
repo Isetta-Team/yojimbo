@@ -36,8 +36,8 @@ using namespace yojimbo;
 
 const uint64_t ProtocolId = 0x11223344556677ULL;
 
-const int ClientPort = 30000;
-const int ServerPort = 40000;
+const int ClientPort = 30001;
+const int ServerPort = 40001;
 
 inline int GetNumBitsForMessage( uint16_t sequence )
 {
