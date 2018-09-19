@@ -3156,7 +3156,7 @@ void Client::StateChangeCallbackFunction(int previous, int current) {
   if (current == NETCODE_CLIENT_STATE_CONNECTED) {
     m_connectionCallback(true);
     m_connectionCallback = nullptr;
-  } else if (current == NETCODE_CLIENT_STATE_DISCONNECTED) {
+  } else if (current <= NETCODE_CLIENT_STATE_DISCONNECTED) {
     m_connectionCallback(false);
     m_connectionCallback = nullptr;
   }
