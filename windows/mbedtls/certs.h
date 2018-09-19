@@ -29,6 +29,7 @@
 extern "C" {
 #endif
 
+#define MBEDTLS_PEM_PARSE_C  // <--- THIS IS SO CONFUSING
 #if defined(MBEDTLS_PEM_PARSE_C)
 /* Concatenation of all CA certificates in PEM format if available */
 extern const char   mbedtls_test_cas_pem[];
