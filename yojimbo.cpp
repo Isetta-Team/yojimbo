@@ -2956,19 +2956,22 @@ Client::~Client() {
 }
 
 void Client::InsecureConnect(const uint8_t privateKey[], uint64_t clientId,
-                             const Address &address) {
-  InsecureConnect(privateKey, clientId, &address, 1);
+                             const Address &address,
+                             std::function<void(bool)> connectionCallback) {
+  InsecureConnect(privateKey, clientId, &address, 1, connectionCallback);
 }
 
 void Client::InsecureConnect(const uint8_t privateKey[], uint64_t clientId,
                              const Address serverAddresses[],
-                             int numServerAddresses) {
+                             int numServerAddresses,
+                             std::function<void(bool)> connectionCallback) {
   yojimbo_assert(serverAddresses);
   yojimbo_assert(numServerAddresses > 0);
   yojimbo_assert(numServerAddresses <= NETCODE_MAX_SERVERS_PER_CONNECT);
   Disconnect();
   CreateInternal();
   m_clientId = clientId;
+  m_connectionCallback = connectionCallback;
   CreateClient(m_address);
   if (!m_client) {
     Disconnect();
@@ -3147,8 +3150,16 @@ void Client::DestroyClient() {
 }
 
 void Client::StateChangeCallbackFunction(int previous, int current) {
-  (void)previous;
-  (void)current;
+  if (!m_connectionCallback) {
+    return;
+  }
+  if (current == NETCODE_CLIENT_STATE_CONNECTED) {
+    m_connectionCallback(true);
+    m_connectionCallback = nullptr;
+  } else if (current == NETCODE_CLIENT_STATE_DISCONNECTED) {
+    m_connectionCallback(false);
+    m_connectionCallback = nullptr;
+  }
 }
 
 void Client::StaticStateChangeCallbackFunction(void *context, int previous,
