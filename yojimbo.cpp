@@ -2714,10 +2714,10 @@ void Connection::AdvanceTime(double time) {
 // ---------------------------------------------------------------------------------
 
 namespace yojimbo {
-BaseClient::BaseClient(Allocator &allocator, const ClientServerConfig &config,
+BaseClient::BaseClient(Allocator *allocator, const ClientServerConfig &config,
                        Adapter &adapter, double time)
     : m_config(config) {
-  m_allocator = &allocator;
+  m_allocator = allocator;
   m_adapter = &adapter;
   m_time = time;
   m_context = NULL;
@@ -2729,7 +2729,7 @@ BaseClient::BaseClient(Allocator &allocator, const ClientServerConfig &config,
   m_networkSimulator = NULL;
   m_clientState = CLIENT_STATE_DISCONNECTED;
   m_clientIndex = -1;
-  m_packetBuffer = (uint8_t *)YOJIMBO_ALLOCATE(allocator, config.maxPacketSize);
+  m_packetBuffer = (uint8_t *)YOJIMBO_ALLOCATE(*allocator, config.maxPacketSize);
 }
 
 BaseClient::~BaseClient() {
@@ -2940,7 +2940,7 @@ void BaseClient::GetNetworkInfo(NetworkInfo &info) const {
 
 // ------------------------------------------------------------------------------------------------------------------
 
-Client::Client(Allocator &allocator, const Address &address,
+Client::Client(Allocator *allocator, const Address &address,
                const ClientServerConfig &config, Adapter &adapter, double time)
     : BaseClient(allocator, config, adapter, time),
       m_config(config),
@@ -3207,11 +3207,11 @@ void Client::StaticSendLoopbackPacketCallbackFunction(void *context,
 // ---------------------------------------------------------------------------------
 
 namespace yojimbo {
-BaseServer::BaseServer(Allocator &allocator, const ClientServerConfig &config,
-                       Adapter &adapter, double time)
+BaseServer::BaseServer(Allocator *allocator, const ClientServerConfig &config,
+                       Adapter *adapter, double time)
     : m_config(config) {
-  m_allocator = &allocator;
-  m_adapter = &adapter;
+  m_allocator = allocator;
+  m_adapter = adapter;
   m_context = NULL;
   m_time = time;
   m_running = false;
@@ -3521,9 +3521,9 @@ void BaseServer::StaticFreeFunction(void *context, void *pointer) {
 
 // -----------------------------------------------------------------------------------------------------
 
-Server::Server(Allocator &allocator, const uint8_t privateKey[],
+Server::Server(Allocator *allocator, const uint8_t privateKey[],
                const Address &address, const ClientServerConfig &config,
-               Adapter &adapter, double time)
+               Adapter *adapter, double time)
     : BaseServer(allocator, config, adapter, time) {
   yojimbo_assert(KeyBytes == NETCODE_KEY_BYTES);
   memcpy(m_privateKey, privateKey, NETCODE_KEY_BYTES);

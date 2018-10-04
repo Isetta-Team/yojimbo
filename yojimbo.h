@@ -209,15 +209,18 @@ enum ChannelType {
 
 /**
     Configuration properties for a message channel.
- 
+ 
+
 
     Channels let you specify different reliability and ordering guarantees for
 messages sent across a connection.
- 
+ 
+
 
     They may be configured as one of two types: reliable-ordered or
 unreliable-unordered.
- 
+ 
+
 
     Reliable ordered channels guarantee that messages (see Message) are received
 reliably and in the same order they were sent. This channel type is designed for
@@ -229,11 +232,13 @@ messages will arrive, and messages may arrive out of order. This channel type is
 designed for data that is time critical and should not be resent if dropped,
 like snapshots of world state sent rapidly from server to client, or cosmetic
 events such as effects and sounds.
-    
+    
+
 
     Both channel types support blocks of data attached to messages (see
 BlockMessage), but their treatment of blocks is quite different.
-    
+    
+
 
     Reliable ordered channels are designed for blocks that must be received
 reliably and in-order with the rest of the messages sent over the channel.
@@ -242,7 +247,8 @@ server configuration data sent down to a client on connect. These blocks are
 sent by splitting them into fragments and resending each fragment until the
 other side has received the entire block. This allows for sending blocks of data
 larger that maximum packet size quickly and reliably even under packet loss.
-    
+    
+
 
     Unreliable-unordered channels send blocks as-is without splitting them up
 into fragments. The idea is that transport level packet fragmentation should be
@@ -250,7 +256,8 @@ used on top of the generated packet to split it up into into smaller packets
 that can be sent across typical Internet MTU (<1500 bytes). Because of this, you
 need to make sure that the maximum block size for an unreliable-unordered
 channel fits within the maximum packet size.
-    
+    
+
 
     Channels are typically configured as part of a ConnectionConfig, which is
 included inside the ClientServerConfig that is passed into the Client and Server
@@ -3606,38 +3613,46 @@ class Serializable {
    Connection class. Messages can be sent reliable-ordered, or
    unreliable-unordered, depending on the configuration of the channel they are
    sent over.
-    
+    
+
 
     To use messages, create your own set of message classes by inheriting from
    this class (or from BlockMessage, if you want to attach data blocks to your
    message), then setup an enum of all your message types and derive a message
    factory class to create your message instances by type.
-    
+    
+
 
     There are macros to help make defining your message factory painless:
-    
+    
+
 
         YOJIMBO_MESSAGE_FACTORY_START
         YOJIMBO_DECLARE_MESSAGE_TYPE
         YOJIMBO_MESSAGE_FACTORY_FINISH
-    
+    
+
 
     Once you have a message factory, register it with your declared inside your
    client and server classes using:
-    
+    
+
 
         YOJIMBO_MESSAGE_FACTORY
-    
+    
+
 
     which overrides the Client::CreateMessageFactory and
    Server::CreateMessageFactory methods so the client and server classes use
    your message factory type.
-    
+    
+
 
     See tests/shared.h for an example showing you how to do this, and the
    functional tests inside tests/test.cpp for examples showing how how to send
    and receive messages.
-    
+    
+
 
     @see BlockMessage
     @see MessageFactory
@@ -3944,12 +3959,14 @@ enum MessageFactoryErrorLevel {
 
     You can derive a message factory yourself to create your own message types,
    or you can use these helper macros to do it for you:
-    
+    
+
 
         YOJIMBO_MESSAGE_FACTORY_START
         YOJIMBO_DECLARE_MESSAGE_TYPE
         YOJIMBO_MESSAGE_FACTORY_FINISH
-    
+    
+
 
     See tests/shared.h for an example showing how to use the macros.
  */
@@ -5567,8 +5584,8 @@ class ServerInterface {
 
 class BaseServer : public ServerInterface {
  public:
-  BaseServer(Allocator &allocator, const ClientServerConfig &config,
-             Adapter &adapter, double time);
+  BaseServer(Allocator *allocator, const ClientServerConfig &config,
+             Adapter *adapter, double time);
 
   ~BaseServer();
 
@@ -5698,9 +5715,9 @@ class BaseServer : public ServerInterface {
 
 class Server : public BaseServer {
  public:
-  Server(Allocator &allocator, const uint8_t privateKey[],
+  Server(Allocator *allocator, const uint8_t privateKey[],
          const Address &address, const ClientServerConfig &config,
-         Adapter &adapter, double time);
+         Adapter *adapter, double time);
 
   ~Server();
 
@@ -6025,7 +6042,7 @@ class BaseClient : public ClientInterface {
      message factory to use etc.
    */
 
-  explicit BaseClient(Allocator &allocator, const ClientServerConfig &config,
+  explicit BaseClient(Allocator *allocator, const ClientServerConfig &config,
                       Adapter &adapter, double time);
 
   ~BaseClient();
@@ -6183,7 +6200,7 @@ class Client : public BaseClient {
       @param time The current time in seconds. See ClientInterface::AdvanceTime
    */
 
-  explicit Client(Allocator &allocator, const Address &address,
+  explicit Client(Allocator *allocator, const Address &address,
                   const ClientServerConfig &config, Adapter &adapter,
                   double time);
 
