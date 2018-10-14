@@ -2926,7 +2926,7 @@ class Address {
       yojimbo_assert(int64_t(value) <= int64_t(max));                       \
       int32_value = (int32_t)value;                                         \
     }                                                                       \
-    if (!stream.SerializeInteger(int32_value, min, max)) {                  \
+    if (!stream->SerializeInteger(int32_value, min, max)) {                  \
       return false;                                                         \
     }                                                                       \
     if (Stream::IsReading) {                                                \
@@ -2958,7 +2958,7 @@ class Address {
     if (Stream::IsWriting) {                         \
       uint32_value = (uint32_t)value;                \
     }                                                \
-    if (!stream.SerializeBits(uint32_value, bits)) { \
+    if (!stream->SerializeBits(uint32_value, bits)) { \
       return false;                                  \
     }                                                \
     if (Stream::IsReading) {                         \
@@ -2991,12 +2991,12 @@ class Address {
   } while (0)
 
 template <typename Stream>
-bool serialize_float_internal(Stream &stream, float &value) {
+bool serialize_float_internal(Stream *stream, float &value) {
   uint32_t int_value;
   if (Stream::IsWriting) {
     memcpy(&int_value, &value, 4);
   }
-  bool result = stream.SerializeBits(int_value, 32);
+  bool result = stream->SerializeBits(int_value, 32);
   if (Stream::IsReading) {
     memcpy(&value, &int_value, 4);
   }
@@ -3037,7 +3037,7 @@ bool serialize_float_internal(Stream &stream, float &value) {
 #define serialize_uint32(stream, value) serialize_bits(stream, value, 32);
 
 template <typename Stream>
-bool serialize_uint64_internal(Stream &stream, uint64_t &value) {
+bool serialize_uint64_internal(Stream *stream, uint64_t &value) {
   uint32_t hi = 0, lo = 0;
   if (Stream::IsWriting) {
     lo = value & 0xFFFFFFFF;
@@ -3069,7 +3069,7 @@ bool serialize_uint64_internal(Stream &stream, uint64_t &value) {
   } while (0)
 
 template <typename Stream>
-bool serialize_double_internal(Stream &stream, double &value) {
+bool serialize_double_internal(Stream *stream, double &value) {
   union DoubleInt {
     double double_value;
     uint64_t int_value;
@@ -3106,8 +3106,8 @@ bool serialize_double_internal(Stream &stream, double &value) {
   } while (0)
 
 template <typename Stream>
-bool serialize_bytes_internal(Stream &stream, uint8_t *data, int bytes) {
-  return stream.SerializeBytes(data, bytes);
+bool serialize_bytes_internal(Stream *stream, uint8_t *data, int bytes) {
+  return stream->SerializeBytes(data, bytes);
 }
 
 /**
@@ -3131,7 +3131,7 @@ bool serialize_bytes_internal(Stream &stream, uint8_t *data, int bytes) {
   } while (0)
 
 template <typename Stream>
-bool serialize_string_internal(Stream &stream, char *string, int buffer_size) {
+bool serialize_string_internal(Stream *stream, char *string, int buffer_size) {
   int length = 0;
   if (Stream::IsWriting) {
     length = (int)strlen(string);
@@ -3180,7 +3180,7 @@ bool serialize_string_internal(Stream &stream, char *string, int buffer_size) {
 
 #define serialize_align(stream)     \
   do {                              \
-    if (!stream.SerializeAlign()) { \
+    if (!stream->SerializeAlign()) { \
       return false;                 \
     }                               \
   } while (0)
@@ -3198,7 +3198,7 @@ bool serialize_string_internal(Stream &stream, char *string, int buffer_size) {
 
 #define serialize_check(stream)     \
   do {                              \
-    if (!stream.SerializeCheck()) { \
+    if (!stream->SerializeCheck()) { \
       return false;                 \
     }                               \
   } while (0)
@@ -3223,7 +3223,7 @@ bool serialize_string_internal(Stream &stream, char *string, int buffer_size) {
   } while (0)
 
 template <typename Stream>
-bool serialize_address_internal(Stream &stream, Address &address) {
+bool serialize_address_internal(Stream *stream, Address &address) {
   char buffer[MaxAddressLength];
   if (Stream::IsWriting) {
     yojimbo_assert(address.IsValid());
@@ -3259,7 +3259,7 @@ bool serialize_address_internal(Stream &stream, Address &address) {
   } while (0)
 
 template <typename Stream, typename T>
-bool serialize_int_relative_internal(Stream &stream, T previous, T &current) {
+bool serialize_int_relative_internal(Stream *stream, T previous, T &current) {
   uint32_t difference = 0;
   if (Stream::IsWriting) {
     yojimbo_assert(previous < current);
@@ -3374,7 +3374,7 @@ bool serialize_int_relative_internal(Stream &stream, T previous, T &current) {
   } while (0)
 
 template <typename Stream>
-bool serialize_ack_relative_internal(Stream &stream, uint16_t sequence,
+bool serialize_ack_relative_internal(Stream *stream, uint16_t sequence,
                                      uint16_t &ack) {
   int ack_delta = 0;
   bool ack_in_range = false;
@@ -3423,7 +3423,7 @@ bool serialize_ack_relative_internal(Stream &stream, uint16_t sequence,
   } while (0)
 
 template <typename Stream>
-bool serialize_sequence_relative_internal(Stream &stream, uint16_t sequence1,
+bool serialize_sequence_relative_internal(Stream *stream, uint16_t sequence1,
                                           uint16_t &sequence2) {
   if (Stream::IsWriting) {
     uint32_t a = sequence1;
@@ -3472,7 +3472,7 @@ bool serialize_sequence_relative_internal(Stream &stream, uint16_t sequence1,
     yojimbo_assert(bits > 0);                        \
     yojimbo_assert(bits <= 32);                      \
     uint32_t uint32_value = 0;                       \
-    if (!stream.SerializeBits(uint32_value, bits)) { \
+    if (!stream->SerializeBits(uint32_value, bits)) { \
       return false;                                  \
     }                                                \
     value = uint32_value;                            \
@@ -3482,7 +3482,7 @@ bool serialize_sequence_relative_internal(Stream &stream, uint16_t sequence1,
   do {                                                     \
     yojimbo_assert(min < max);                             \
     int32_t int32_value = 0;                               \
-    if (!stream.SerializeInteger(int32_value, min, max)) { \
+    if (!stream->SerializeInteger(int32_value, min, max)) { \
       return false;                                        \
     }                                                      \
     value = int32_value;                                   \
@@ -3515,7 +3515,7 @@ bool serialize_sequence_relative_internal(Stream &stream, uint16_t sequence1,
     yojimbo_assert(bits > 0);                        \
     yojimbo_assert(bits <= 32);                      \
     uint32_t uint32_value = (uint32_t)value;         \
-    if (!stream.SerializeBits(uint32_value, bits)) { \
+    if (!stream->SerializeBits(uint32_value, bits)) { \
       return false;                                  \
     }                                                \
   } while (0)
@@ -3526,7 +3526,7 @@ bool serialize_sequence_relative_internal(Stream &stream, uint16_t sequence1,
     yojimbo_assert(value >= min);                                      \
     yojimbo_assert(value <= max);                                      \
     int32_t int32_value = (int32_t)value;                              \
-    if (!stream.SerializeInteger(int32_value, min, max)) return false; \
+    if (!stream->SerializeInteger(int32_value, min, max)) return false; \
   } while (0)
 
 #define write_float serialize_float
@@ -3567,7 +3567,7 @@ class Serializable {
       @param stream The stream to read from.
    */
 
-  virtual bool SerializeInternal(class ReadStream &stream) = 0;
+  virtual bool SerializeInternal(class ReadStream *stream) = 0;
 
   /**
       Virtual serialize function (write).
@@ -3575,7 +3575,7 @@ class Serializable {
       @param stream The stream to write to.
    */
 
-  virtual bool SerializeInternal(class WriteStream &stream) = 0;
+  virtual bool SerializeInternal(class WriteStream *stream) = 0;
 
   /**
       Virtual serialize function (measure).
@@ -3584,7 +3584,7 @@ class Serializable {
       @param stream The read stream.
    */
 
-  virtual bool SerializeInternal(class MeasureStream &stream) = 0;
+  virtual bool SerializeInternal(class MeasureStream *stream) = 0;
 };
 
 /**
@@ -3595,13 +3595,13 @@ class Serializable {
  */
 
 #define YOJIMBO_VIRTUAL_SERIALIZE_FUNCTIONS()                    \
-  bool SerializeInternal(class yojimbo::ReadStream &stream) {    \
+  bool SerializeInternal(class yojimbo::ReadStream *stream) {    \
     return Serialize(stream);                                    \
   };                                                             \
-  bool SerializeInternal(class yojimbo::WriteStream &stream) {   \
+  bool SerializeInternal(class yojimbo::WriteStream *stream) {   \
     return Serialize(stream);                                    \
   };                                                             \
-  bool SerializeInternal(class yojimbo::MeasureStream &stream) { \
+  bool SerializeInternal(class yojimbo::MeasureStream *stream) { \
     return Serialize(stream);                                    \
   };
 
@@ -3730,7 +3730,7 @@ class Message : public Serializable {
      implementations for you. See tests/shared.h for examples of this.
    */
 
-  virtual bool SerializeInternal(ReadStream &stream) = 0;
+  virtual bool SerializeInternal(ReadStream *stream) = 0;
 
   /**
       Virtual serialize function (write).
@@ -3743,7 +3743,7 @@ class Message : public Serializable {
      implementations for you. See tests/shared.h for examples of this.
    */
 
-  virtual bool SerializeInternal(WriteStream &stream) = 0;
+  virtual bool SerializeInternal(WriteStream *stream) = 0;
 
   /**
       Virtual serialize function (measure).
@@ -3757,7 +3757,7 @@ class Message : public Serializable {
      implementations for you. See tests/shared.h for examples of this.
    */
 
-  virtual bool SerializeInternal(MeasureStream &stream) = 0;
+  virtual bool SerializeInternal(MeasureStream *stream) = 0;
 
  protected:
   /**
@@ -3913,7 +3913,7 @@ class BlockMessage : public Message {
    */
 
   template <typename Stream>
-  bool Serialize(Stream &stream) {
+  bool Serialize(Stream *stream) {
     (void)stream;
     return true;
   }
@@ -4232,16 +4232,16 @@ struct ChannelPacketData {
   void Free(MessageFactory &messageFactory);
 
   template <typename Stream>
-  bool Serialize(Stream &stream, MessageFactory &messageFactory,
+  bool Serialize(Stream *stream, MessageFactory &messageFactory,
                  const ChannelConfig *channelConfigs, int numChannels);
 
-  bool SerializeInternal(ReadStream &stream, MessageFactory &messageFactory,
+  bool SerializeInternal(ReadStream *stream, MessageFactory &messageFactory,
                          const ChannelConfig *channelConfigs, int numChannels);
 
-  bool SerializeInternal(WriteStream &stream, MessageFactory &messageFactory,
+  bool SerializeInternal(WriteStream *stream, MessageFactory &messageFactory,
                          const ChannelConfig *channelConfigs, int numChannels);
 
-  bool SerializeInternal(MeasureStream &stream, MessageFactory &messageFactory,
+  bool SerializeInternal(MeasureStream *stream, MessageFactory &messageFactory,
                          const ChannelConfig *channelConfigs, int numChannels);
 };
 

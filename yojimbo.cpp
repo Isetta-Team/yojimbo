@@ -1104,7 +1104,7 @@ void ChannelPacketData::Free(MessageFactory &messageFactory) {
 }
 
 template <typename Stream>
-bool SerializeOrderedMessages(Stream &stream, MessageFactory &messageFactory,
+bool SerializeOrderedMessages(Stream *stream, MessageFactory &messageFactory,
                               int &numMessages, Message **&messages,
                               int maxMessagesPerPacket) {
   const int maxMessageType = messageFactory.GetNumTypes() - 1;
@@ -1184,7 +1184,7 @@ bool SerializeOrderedMessages(Stream &stream, MessageFactory &messageFactory,
 }
 
 template <typename Stream>
-bool SerializeMessageBlock(Stream &stream, MessageFactory &messageFactory,
+bool SerializeMessageBlock(Stream *stream, MessageFactory &messageFactory,
                            BlockMessage *blockMessage, int maxBlockSize) {
   int blockSize = Stream::IsWriting ? blockMessage->GetBlockSize() : 0;
 
@@ -1212,7 +1212,7 @@ bool SerializeMessageBlock(Stream &stream, MessageFactory &messageFactory,
 }
 
 template <typename Stream>
-bool SerializeUnorderedMessages(Stream &stream, MessageFactory &messageFactory,
+bool SerializeUnorderedMessages(Stream *stream, MessageFactory &messageFactory,
                                 int &numMessages, Message **&messages,
                                 int maxMessagesPerPacket, int maxBlockSize) {
   const int maxMessageType = messageFactory.GetNumTypes() - 1;
@@ -1290,7 +1290,7 @@ bool SerializeUnorderedMessages(Stream &stream, MessageFactory &messageFactory,
 }
 
 template <typename Stream>
-bool SerializeBlockFragment(Stream &stream, MessageFactory &messageFactory,
+bool SerializeBlockFragment(Stream *stream, MessageFactory &messageFactory,
                             ChannelPacketData::BlockData &block,
                             const ChannelConfig &channelConfig) {
   const int maxMessageType = messageFactory.GetNumTypes() - 1;
@@ -1369,14 +1369,14 @@ bool SerializeBlockFragment(Stream &stream, MessageFactory &messageFactory,
 }
 
 template <typename Stream>
-bool ChannelPacketData::Serialize(Stream &stream,
+bool ChannelPacketData::Serialize(Stream *stream,
                                   MessageFactory &messageFactory,
                                   const ChannelConfig *channelConfigs,
                                   int numChannels) {
   yojimbo_assert(initialized);
 
 #if YOJIMBO_DEBUG_MESSAGE_BUDGET
-  int startBits = stream.GetBitsProcessed();
+  int startBits = stream->GetBitsProcessed();
 #endif  // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
 
   if (numChannels > 1)
@@ -1412,7 +1412,7 @@ bool ChannelPacketData::Serialize(Stream &stream,
 
 #if YOJIMBO_DEBUG_MESSAGE_BUDGET
     if (channelConfig.packetBudget > 0) {
-      yojimbo_assert(stream.GetBitsProcessed() - startBits <=
+      yojimbo_assert(stream->GetBitsProcessed() - startBits <=
                      channelConfig.packetBudget * 8);
     }
 #endif  // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
@@ -1426,21 +1426,21 @@ bool ChannelPacketData::Serialize(Stream &stream,
   return true;
 }
 
-bool ChannelPacketData::SerializeInternal(ReadStream &stream,
+bool ChannelPacketData::SerializeInternal(ReadStream *stream,
                                           MessageFactory &messageFactory,
                                           const ChannelConfig *channelConfigs,
                                           int numChannels) {
   return Serialize(stream, messageFactory, channelConfigs, numChannels);
 }
 
-bool ChannelPacketData::SerializeInternal(WriteStream &stream,
+bool ChannelPacketData::SerializeInternal(WriteStream *stream,
                                           MessageFactory &messageFactory,
                                           const ChannelConfig *channelConfigs,
                                           int numChannels) {
   return Serialize(stream, messageFactory, channelConfigs, numChannels);
 }
 
-bool ChannelPacketData::SerializeInternal(MeasureStream &stream,
+bool ChannelPacketData::SerializeInternal(MeasureStream *stream,
                                           MessageFactory &messageFactory,
                                           const ChannelConfig *channelConfigs,
                                           int numChannels) {
@@ -1630,7 +1630,7 @@ void ReliableOrderedChannel::SendMessage(Message *message, void *context) {
 
   MeasureStream measureStream(m_messageFactory->GetAllocator());
   measureStream.SetContext(context);
-  message->SerializeInternal(measureStream);
+  message->SerializeInternal(&measureStream);
   entry->measuredBits = measureStream.GetBitsProcessed();
   m_counters[CHANNEL_COUNTER_MESSAGES_SENT]++;
   m_sendMessageId++;
@@ -1741,7 +1741,7 @@ int ReliableOrderedChannel::GetMessagesToSend(uint16_t *messageIds,
       } else {
         MeasureStream stream(GetDefaultAllocator());
         stream.SetContext(context);
-        serialize_sequence_relative_internal(stream, previousMessageId,
+        serialize_sequence_relative_internal(&stream, previousMessageId,
                                              messageId);
         messageBits += stream.GetBitsProcessed();
       }
@@ -2309,11 +2309,11 @@ int UnreliableUnorderedChannel::GetPacketData(void *context,
 
     MeasureStream measureStream(m_messageFactory->GetAllocator());
     measureStream.SetContext(context);
-    message->SerializeInternal(measureStream);
+    message->SerializeInternal(&measureStream);
 
     if (message->IsBlockMessage()) {
       BlockMessage *blockMessage = (BlockMessage *)message;
-      SerializeMessageBlock(measureStream, *m_messageFactory, blockMessage,
+      SerializeMessageBlock(&measureStream, *m_messageFactory, blockMessage,
                             m_config.maxBlockSize);
     }
 
@@ -2410,12 +2410,12 @@ struct ConnectionPacket {
   }
 
   template <typename Stream>
-  bool Serialize(Stream &stream, MessageFactory &messageFactory,
+  bool Serialize(Stream *stream, MessageFactory &messageFactory,
                  const ConnectionConfig &connectionConfig) {
     const int numChannels = connectionConfig.numChannels;
     serialize_int(stream, numChannelEntries, 0, connectionConfig.numChannels);
 #if YOJIMBO_DEBUG_MESSAGE_BUDGET
-    yojimbo_assert(stream.GetBitsProcessed() <= ConservativePacketHeaderBits);
+    yojimbo_assert(stream->GetBitsProcessed() <= ConservativePacketHeaderBits);
 #endif  // #if YOJIMBO_DEBUG_MESSAGE_BUDGET
     if (numChannelEntries > 0) {
       if (Stream::IsReading) {
@@ -2443,17 +2443,17 @@ struct ConnectionPacket {
     return true;
   }
 
-  bool SerializeInternal(ReadStream &stream, MessageFactory &_messageFactory,
+  bool SerializeInternal(ReadStream *stream, MessageFactory &_messageFactory,
                          const ConnectionConfig &connectionConfig) {
     return Serialize(stream, _messageFactory, connectionConfig);
   }
 
-  bool SerializeInternal(WriteStream &stream, MessageFactory &_messageFactory,
+  bool SerializeInternal(WriteStream *stream, MessageFactory &_messageFactory,
                          const ConnectionConfig &connectionConfig) {
     return Serialize(stream, _messageFactory, connectionConfig);
   }
 
-  bool SerializeInternal(MeasureStream &stream, MessageFactory &_messageFactory,
+  bool SerializeInternal(MeasureStream *stream, MessageFactory &_messageFactory,
                          const ConnectionConfig &connectionConfig) {
     return Serialize(stream, _messageFactory, connectionConfig);
   }
@@ -2545,7 +2545,7 @@ static int WritePacket(void *context, MessageFactory &messageFactory,
 
   stream.SetContext(context);
 
-  if (!packet.SerializeInternal(stream, messageFactory, connectionConfig)) {
+  if (!packet.SerializeInternal(&stream, messageFactory, connectionConfig)) {
     yojimbo_printf(
         YOJIMBO_LOG_LEVEL_ERROR,
         "error: serialize connection packet failed (write packet)\n");
@@ -2628,7 +2628,7 @@ static bool ReadPacket(void *context, MessageFactory &messageFactory,
 
   stream.SetContext(context);
 
-  if (!packet.SerializeInternal(stream, messageFactory, connectionConfig)) {
+  if (!packet.SerializeInternal(&stream, messageFactory, connectionConfig)) {
     yojimbo_printf(YOJIMBO_LOG_LEVEL_ERROR,
                    "error: serialize connection packet failed (read packet)\n");
     return false;
