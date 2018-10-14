@@ -3982,8 +3982,8 @@ class MessageFactory {
      [0,numTypes-1].
    */
 
-  MessageFactory(Allocator &allocator, int numTypes) {
-    m_allocator = &allocator;
+  MessageFactory(Allocator *allocator, int numTypes) {
+    m_allocator = allocator;
     m_numTypes = numTypes;
     m_errorLevel = MESSAGE_FACTORY_ERROR_NONE;
   }
@@ -4161,11 +4161,11 @@ class MessageFactory {
                                                                         \
   class factory_class : public yojimbo::MessageFactory {                \
    public:                                                              \
-    factory_class(yojimbo::Allocator &allocator)                        \
+    factory_class(yojimbo::Allocator allocator)                        \
         : MessageFactory(allocator, num_message_types) {}               \
     yojimbo::Message *CreateMessageInternal(int type) {                 \
       yojimbo::Message *message;                                        \
-      yojimbo::Allocator &allocator = GetAllocator();                   \
+      yojimbo::Allocator allocator = GetAllocator();                   \
       (void)allocator;                                                  \
       switch (type) {
 /**
