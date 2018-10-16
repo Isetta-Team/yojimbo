@@ -212,14 +212,17 @@ enum ChannelType {
  
 
 
+
     Channels let you specify different reliability and ordering guarantees for
 messages sent across a connection.
  
 
 
+
     They may be configured as one of two types: reliable-ordered or
 unreliable-unordered.
  
+
 
 
     Reliable ordered channels guarantee that messages (see Message) are received
@@ -235,9 +238,11 @@ events such as effects and sounds.
     
 
 
+
     Both channel types support blocks of data attached to messages (see
 BlockMessage), but their treatment of blocks is quite different.
     
+
 
 
     Reliable ordered channels are designed for blocks that must be received
@@ -250,6 +255,7 @@ larger that maximum packet size quickly and reliably even under packet loss.
     
 
 
+
     Unreliable-unordered channels send blocks as-is without splitting them up
 into fragments. The idea is that transport level packet fragmentation should be
 used on top of the generated packet to split it up into into smaller packets
@@ -257,6 +263,7 @@ that can be sent across typical Internet MTU (<1500 bytes). Because of this, you
 need to make sure that the maximum block size for an unreliable-unordered
 channel fits within the maximum packet size.
     
+
 
 
     Channels are typically configured as part of a ConnectionConfig, which is
@@ -2926,7 +2933,7 @@ class Address {
       yojimbo_assert(int64_t(value) <= int64_t(max));                       \
       int32_value = (int32_t)value;                                         \
     }                                                                       \
-    if (!stream->SerializeInteger(int32_value, min, max)) {                  \
+    if (!stream->SerializeInteger(int32_value, min, max)) {                 \
       return false;                                                         \
     }                                                                       \
     if (Stream::IsReading) {                                                \
@@ -2950,20 +2957,20 @@ class Address {
     @param bits The number of bits to serialize in [1,32].
  */
 
-#define serialize_bits(stream, value, bits)          \
-  do {                                               \
-    yojimbo_assert(bits > 0);                        \
-    yojimbo_assert(bits <= 32);                      \
-    uint32_t uint32_value = 0;                       \
-    if (Stream::IsWriting) {                         \
-      uint32_value = (uint32_t)value;                \
-    }                                                \
+#define serialize_bits(stream, value, bits)           \
+  do {                                                \
+    yojimbo_assert(bits > 0);                         \
+    yojimbo_assert(bits <= 32);                       \
+    uint32_t uint32_value = 0;                        \
+    if (Stream::IsWriting) {                          \
+      uint32_value = (uint32_t)value;                 \
+    }                                                 \
     if (!stream->SerializeBits(uint32_value, bits)) { \
-      return false;                                  \
-    }                                                \
-    if (Stream::IsReading) {                         \
-      value = uint32_value;                          \
-    }                                                \
+      return false;                                   \
+    }                                                 \
+    if (Stream::IsReading) {                          \
+      value = uint32_value;                           \
+    }                                                 \
   } while (0)
 
 /**
@@ -3178,11 +3185,11 @@ bool serialize_string_internal(Stream *stream, char *string, int buffer_size) {
     @param stream The stream object. May be a read, write or measure stream.
  */
 
-#define serialize_align(stream)     \
-  do {                              \
+#define serialize_align(stream)      \
+  do {                               \
     if (!stream->SerializeAlign()) { \
-      return false;                 \
-    }                               \
+      return false;                  \
+    }                                \
   } while (0)
 
 /**
@@ -3196,11 +3203,11 @@ bool serialize_string_internal(Stream *stream, char *string, int buffer_size) {
     @param stream The stream object. May be a read, write or measure stream.
  */
 
-#define serialize_check(stream)     \
-  do {                              \
+#define serialize_check(stream)      \
+  do {                               \
     if (!stream->SerializeCheck()) { \
-      return false;                 \
-    }                               \
+      return false;                  \
+    }                                \
   } while (0)
 
 /**
@@ -3467,28 +3474,28 @@ bool serialize_sequence_relative_internal(Stream *stream, uint16_t sequence1,
 // read macros corresponding to each serialize_*. useful when you want separate
 // read and write functions.
 
-#define read_bits(stream, value, bits)               \
-  do {                                               \
-    yojimbo_assert(bits > 0);                        \
-    yojimbo_assert(bits <= 32);                      \
-    uint32_t uint32_value = 0;                       \
+#define read_bits(stream, value, bits)                \
+  do {                                                \
+    yojimbo_assert(bits > 0);                         \
+    yojimbo_assert(bits <= 32);                       \
+    uint32_t uint32_value = 0;                        \
     if (!stream->SerializeBits(uint32_value, bits)) { \
-      return false;                                  \
-    }                                                \
-    value = uint32_value;                            \
+      return false;                                   \
+    }                                                 \
+    value = uint32_value;                             \
   } while (0)
 
-#define read_int(stream, value, min, max)                  \
-  do {                                                     \
-    yojimbo_assert(min < max);                             \
-    int32_t int32_value = 0;                               \
+#define read_int(stream, value, min, max)                   \
+  do {                                                      \
+    yojimbo_assert(min < max);                              \
+    int32_t int32_value = 0;                                \
     if (!stream->SerializeInteger(int32_value, min, max)) { \
-      return false;                                        \
-    }                                                      \
-    value = int32_value;                                   \
-    if (value < min || value > max) {                      \
-      return false;                                        \
-    }                                                      \
+      return false;                                         \
+    }                                                       \
+    value = int32_value;                                    \
+    if (value < min || value > max) {                       \
+      return false;                                         \
+    }                                                       \
   } while (0)
 
 #define read_bool(stream, value) read_bits(stream, value, 1)
@@ -3510,22 +3517,22 @@ bool serialize_sequence_relative_internal(Stream *stream, uint16_t sequence1,
 // write macros corresponding to each serialize_*. useful when you want separate
 // read and write functions for some reason.
 
-#define write_bits(stream, value, bits)              \
-  do {                                               \
-    yojimbo_assert(bits > 0);                        \
-    yojimbo_assert(bits <= 32);                      \
-    uint32_t uint32_value = (uint32_t)value;         \
+#define write_bits(stream, value, bits)               \
+  do {                                                \
+    yojimbo_assert(bits > 0);                         \
+    yojimbo_assert(bits <= 32);                       \
+    uint32_t uint32_value = (uint32_t)value;          \
     if (!stream->SerializeBits(uint32_value, bits)) { \
-      return false;                                  \
-    }                                                \
+      return false;                                   \
+    }                                                 \
   } while (0)
 
-#define write_int(stream, value, min, max)                             \
-  do {                                                                 \
-    yojimbo_assert(min < max);                                         \
-    yojimbo_assert(value >= min);                                      \
-    yojimbo_assert(value <= max);                                      \
-    int32_t int32_value = (int32_t)value;                              \
+#define write_int(stream, value, min, max)                              \
+  do {                                                                  \
+    yojimbo_assert(min < max);                                          \
+    yojimbo_assert(value >= min);                                       \
+    yojimbo_assert(value <= max);                                       \
+    int32_t int32_value = (int32_t)value;                               \
     if (!stream->SerializeInteger(int32_value, min, max)) return false; \
   } while (0)
 
@@ -3616,6 +3623,7 @@ class Serializable {
     
 
 
+
     To use messages, create your own set of message classes by inheriting from
    this class (or from BlockMessage, if you want to attach data blocks to your
    message), then setup an enum of all your message types and derive a message
@@ -3623,8 +3631,10 @@ class Serializable {
     
 
 
+
     There are macros to help make defining your message factory painless:
     
+
 
 
         YOJIMBO_MESSAGE_FACTORY_START
@@ -3633,13 +3643,16 @@ class Serializable {
     
 
 
+
     Once you have a message factory, register it with your declared inside your
    client and server classes using:
     
 
 
+
         YOJIMBO_MESSAGE_FACTORY
     
+
 
 
     which overrides the Client::CreateMessageFactory and
@@ -3648,10 +3661,12 @@ class Serializable {
     
 
 
+
     See tests/shared.h for an example showing you how to do this, and the
    functional tests inside tests/test.cpp for examples showing how how to send
    and receive messages.
     
+
 
 
     @see BlockMessage
@@ -3758,6 +3773,13 @@ class Message : public Serializable {
    */
 
   virtual bool SerializeInternal(MeasureStream *stream) = 0;
+
+  /**
+     Virtual copy function.
+     Allows for generating messages from a "template" message.
+  */
+
+  virtual void Copy(const Message *otherMessage) = 0;
 
  protected:
   /**
@@ -3962,10 +3984,12 @@ enum MessageFactoryErrorLevel {
     
 
 
+
         YOJIMBO_MESSAGE_FACTORY_START
         YOJIMBO_DECLARE_MESSAGE_TYPE
         YOJIMBO_MESSAGE_FACTORY_FINISH
     
+
 
 
     See tests/shared.h for an example showing how to use the macros.
@@ -4161,11 +4185,11 @@ class MessageFactory {
                                                                         \
   class factory_class : public yojimbo::MessageFactory {                \
    public:                                                              \
-    factory_class(yojimbo::Allocator allocator)                        \
+    factory_class(yojimbo::Allocator allocator)                         \
         : MessageFactory(allocator, num_message_types) {}               \
     yojimbo::Message *CreateMessageInternal(int type) {                 \
       yojimbo::Message *message;                                        \
-      yojimbo::Allocator allocator = GetAllocator();                   \
+      yojimbo::Allocator allocator = GetAllocator();                    \
       (void)allocator;                                                  \
       switch (type) {
 /**
