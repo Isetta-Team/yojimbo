@@ -2729,7 +2729,8 @@ BaseClient::BaseClient(Allocator *allocator, const ClientServerConfig &config,
   m_networkSimulator = NULL;
   m_clientState = CLIENT_STATE_DISCONNECTED;
   m_clientIndex = -1;
-  m_packetBuffer = (uint8_t *)YOJIMBO_ALLOCATE(*allocator, config.maxPacketSize);
+  m_packetBuffer =
+      (uint8_t *)YOJIMBO_ALLOCATE(*allocator, config.maxPacketSize);
 }
 
 BaseClient::~BaseClient() {
@@ -2957,14 +2958,14 @@ Client::~Client() {
 
 void Client::InsecureConnect(const uint8_t privateKey[], uint64_t clientId,
                              const Address &address,
-                             std::function<void(bool)> connectionCallback) {
+                             std::function<void(int)> connectionCallback) {
   InsecureConnect(privateKey, clientId, &address, 1, connectionCallback);
 }
 
 void Client::InsecureConnect(const uint8_t privateKey[], uint64_t clientId,
                              const Address serverAddresses[],
                              int numServerAddresses,
-                             std::function<void(bool)> connectionCallback) {
+                             std::function<void(int)> connectionCallback) {
   yojimbo_assert(serverAddresses);
   yojimbo_assert(numServerAddresses > 0);
   yojimbo_assert(numServerAddresses <= NETCODE_MAX_SERVERS_PER_CONNECT);
@@ -3153,13 +3154,8 @@ void Client::StateChangeCallbackFunction(int previous, int current) {
   if (!m_connectionCallback) {
     return;
   }
-  if (current == NETCODE_CLIENT_STATE_CONNECTED) {
-    m_connectionCallback(true);
-    m_connectionCallback = nullptr;
-  } else if (current <= NETCODE_CLIENT_STATE_DISCONNECTED) {
-    m_connectionCallback(false);
-    m_connectionCallback = nullptr;
-  }
+  m_connectionCallback(current);
+  m_connectionCallback = nullptr;
 }
 
 void Client::StaticStateChangeCallbackFunction(void *context, int previous,
