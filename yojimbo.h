@@ -6300,7 +6300,7 @@ class Client : public BaseClient {
   Address m_boundAddress;  ///< Address after socket bind, eg. with valid port
   uint64_t m_clientId;  ///< The globally unique client id (set on each call to
                         ///< connect)
-  std::function<void(bool)> m_connectionCallback;
+  std::function<void(int)> m_connectionCallback;
 };
 
 /**

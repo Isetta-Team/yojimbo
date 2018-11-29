@@ -3154,8 +3154,10 @@ void Client::StateChangeCallbackFunction(int previous, int current) {
   if (!m_connectionCallback) {
     return;
   }
-  m_connectionCallback(current);
-  m_connectionCallback = nullptr;
+  // 0 is Disconnect, we already have another callback to take care of that
+  if (current != 0) {
+    m_connectionCallback(current);
+  }
 }
 
 void Client::StaticStateChangeCallbackFunction(void *context, int previous,
